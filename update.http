@@ -1,0 +1,35 @@
+POST http://localhost:8080/orders
+Content-Type: application/json
+
+{
+"orders": [
+  {"weight":1.1, "regions":1, "delivery_hours": ["09:00-11:00", "09:00-11:00"], "cost": 100},
+  {"weight":2.1, "regions":2, "delivery_hours": ["09:00-11:00", "09:00-11:00"], "cost": 200}
+]
+}
+
+
+###
+GET http://localhost:8080/orders/1
+Accept: application/json
+
+###
+GET localhost:8080/orders/2
+
+###
+GET localhost:8080/orders/3
+
+###
+GET localhost:8080/orders/4
+
+###
+GET localhost:8080/orders/88
+
+#POST localhost:8080/balance/11
+#Content-Type: application/json
+
+#{"user_id":"11", "amount":"5.0"}
+
+###
+#GET http://localhost:8080/orders/1
+#Accept: application/json

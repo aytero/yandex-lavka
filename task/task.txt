@@ -1,0 +1,65 @@
+
+
+
+7 handlers:
+
+POST /couriers
+GET /couriers/{courier_id}
+GET /couriers
+
+POST /orders
+GET /orders
+POST /orders/complete
+GET /orders/{order_id}
+
+
+
+
+POST /couriers
+json list of couriers, their working hours
+type courier struct {
+    district/region format: unsigned int целое положительное число
+    schedule / working hours / график format: HH:MM-HH:MM
+    type: пеший, велокурьер, курьер на автомобиле
+    volume / load of an order (depends on type)
+}
+
+GET /couriers/{courier_id}
+returns courier info
+
+GET /couriers
+returns info about all couriers
+
+
+POST /orders
+json
+type order struct {
+    weight
+    district
+    deliveryTime    format: строка в формате HH:MM-HH:MM, где HH - часы (от 0 до 23)
+                    и MM - минуты (от 0 до 59). Примеры: “09:00-11:00”, “12:00-23:00”, “00:00-23:59”.
+    cost
+}
+
+EXTRA
+GET /couriers/meta-info/{courier_id}
+
+
+GET /orders/{order_id}
+returns json order info AND dop info: weight, district, промежутки времени, в которые удобно принять заказ
+
+GET /orders
+Возвращает информацию о всех заказах, а также их дополнительную информацию: вес заказа, район доставки,
+промежутки времени, в которые удобно принять заказ.
+У метода есть параметры `offset` и `limit`, чтобы обеспечить постраничную выдачу.
+Если:
+* `offset` или `limit` не передаются, по умолчанию нужно считать, что `offset = 0`, `limit = 1`;
+* офферов по заданным `offset` и `limit` не найдено, нужно возвращать пустой список `orders`.
+
+
+POST /orders/complete
+accepts array/slice of orders of 3 fields: courier_id, order_id, time(date) of completion
+AND flags order as complete
+Если заказ:
+* не найден, был назначен на другого курьера или не назначен совсем — следует вернуть ошибку `HTTP 400 Bad Request`.
+* выполнен успешно — следует выводить `HTTP 200 OK` и идентификатор завершенного заказа.

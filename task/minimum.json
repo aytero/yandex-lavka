@@ -12,29 +12,29 @@
         ],
         "operationId": "getOrders",
         "parameters": [
-            {
-              "name": "limit",
-              "in": "query",
-              "description": "Максимальное количество заказов в выдаче. Если параметр не передан, то значение по умолчанию равно 1.",
-              "required": false,
-              "schema": {
-                "type": "integer",
-                "format": "int32"
-              },
-              "example": 10
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Максимальное количество заказов в выдаче. Если параметр не передан, то значение по умолчанию равно 1.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
             },
-            {
-              "name": "offset",
-              "in": "query",
-              "description": "Количество заказов, которое нужно пропустить для отображения текущей страницы. Если параметр не передан, то значение по умолчанию равно 0.",
-              "required": false,
-              "schema": {
-                "type": "integer",
-                "format": "int32"
-              },
-              "example": 0
-            }
-          ],
+            "example": 10
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Количество заказов, которое нужно пропустить для отображения текущей страницы. Если параметр не передан, то значение по умолчанию равно 0.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 0
+          }
+        ],
         "responses": {
           "200": {
             "description": "ok",
@@ -146,105 +146,6 @@
         }
       }
     },
-    "/orders/assign": {
-      "post": {
-        "tags": [
-          "order-controller"
-        ],
-        "summary": "Распределение заказов по курьерам",
-        "parameters": [
-          {
-            "name": "date",
-            "in": "query",
-            "description": "Дата распределения заказов. Если не указана, то используется текущий день",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          }
-        ],
-        "description": "Для распределения заказов между курьерами учитываются следующие параметры: <ul><li>вес заказа</li><li>регион доставки</li><li>стоимость доставки</li></ul>",
-        "operationId": "ordersAssign",
-        "responses": {
-          "201": {
-            "description": "ok",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/OrderAssignResponse"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/couriers/assignments": {
-      "get": {
-        "summary": "Список распределенных заказов",
-        "tags": [
-          "courier-controller"
-        ],
-        "operationId": "couriersAssignments",
-        "parameters": [
-          {
-            "name": "date",
-            "in": "query",
-            "description": "Дата распределения заказов. Если не указана, то используется текущий день",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "courier_id",
-            "in": "query",
-            "description": "Идентификатор курьера для получения списка распредленных заказов. Если не указан, возвращаются данные по всем курьерам.",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "ok",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrderAssignResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "bad request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/couriers": {
       "get": {
         "tags": [
@@ -252,28 +153,28 @@
         ],
         "operationId": "getCouriers",
         "parameters": [
-            {
-              "name": "limit",
-              "in": "query",
-              "description": "Максимальное количество курьеров в выдаче. Если параметр не передан, то значение по умолчанию равно 1.",
-              "required": false,
-              "schema": {
-                "type": "integer",
-                "format": "int32"
-              },
-              "example": 10
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Максимальное количество курьеров в выдаче. Если параметр не передан, то значение по умолчанию равно 1.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
             },
-            {
-              "name": "offset",
-              "in": "query",
-              "description": "Количество курьеров, которое нужно пропустить для отображения текущей страницы. Если параметр не передан, то значение по умолчанию равно 0.",
-              "required": false,
-              "schema": {
-                "type": "integer",
-                "format": "int32"
-              },
-              "example": 0
-            }
+            "example": 10
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Количество курьеров, которое нужно пропустить для отображения текущей страницы. Если параметр не передан, то значение по умолчанию равно 0.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 0
+          }
         ],
         "responses": {
           "200": {
@@ -440,60 +341,6 @@
           }
         }
       }
-    },
-    "/couriers/meta-info/{courier_id}": {
-      "get": {
-        "tags": [
-          "courier-controller"
-        ],
-        "operationId": "getCourierMetaInfo",
-        "parameters": [
-          {
-            "name": "courier_id",
-            "in": "path",
-            "description": "Courier identifier",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "startDate",
-            "in": "query",
-            "description": "Rating calculation start date",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "date"
-            },
-            "example": "2023-01-20"
-          },
-          {
-            "name": "endDate",
-            "in": "query",
-            "description": "Rating calculation end date",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "date"
-            },
-            "example": "2023-01-21"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GetCourierMetaInfoResponse"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -617,25 +464,6 @@
           }
         }
       },
-      "OrderAssignResponse": {
-        "required": [
-          "date",
-          "couriers"
-        ],
-        "type": "object",
-        "properties": {
-          "date": {
-            "type": "string",
-            "format": "date"
-          },
-          "couriers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CouriersGroupOrders"
-            }
-          }
-        }
-      },
       "BadRequestResponse": {
         "type": "object"
       },
@@ -722,83 +550,6 @@
       },
       "CourierDto": {
         "required": [
-            "courier_id",
-            "courier_type",
-            "regions",
-            "working_hours"
-        ],
-        "type": "object",
-        "properties": {
-            "courier_id": {
-                "type": "integer",
-                "format": "int64"
-            },
-            "courier_type": {
-                "type": "string",
-                "enum": [
-                    "FOOT",
-                    "BIKE",
-                    "AUTO"
-                ]
-            },
-            "regions": {
-                "type": "array",
-                "items": {
-                    "type": "integer",
-                    "format": "int32"
-                }
-            },
-            "working_hours": {
-                "type": "array",
-                "items": {
-                    "type": "string"
-                }
-            }
-        }
-      },
-      "CreateCouriersResponse": {
-        "required": [
-            "couriers"
-        ],
-        "type": "object",
-        "properties": {
-            "couriers": {
-                "type": "array",
-                "items": {
-                    "$ref": "#/components/schemas/CourierDto"
-                }
-            }
-        }
-      },
-      "NotFoundResponse": {
-        "type": "object"
-      },
-      "GetCouriersResponse": {
-        "required": [
-            "couriers",
-            "limit",
-            "offset"
-        ],
-        "type": "object",
-        "properties": {
-            "couriers": {
-                "type": "array",
-                "items": {
-                    "$ref": "#/components/schemas/CourierDto"
-                }
-            },
-            "limit": {
-                "type": "integer",
-                "format": "int32"
-            },
-            "offset": {
-                "type": "integer",
-                "format": "int32"
-            }
-        }
-      },
-      "GetCourierMetaInfoResponse": {
-        "required": [
           "courier_id",
           "courier_type",
           "regions",
@@ -830,12 +581,45 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "CreateCouriersResponse": {
+        "required": [
+          "couriers"
+        ],
+        "type": "object",
+        "properties": {
+          "couriers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourierDto"
+            }
+          }
+        }
+      },
+      "NotFoundResponse": {
+        "type": "object"
+      },
+      "GetCouriersResponse": {
+        "required": [
+          "couriers",
+          "limit",
+          "offset"
+        ],
+        "type": "object",
+        "properties": {
+          "couriers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourierDto"
+            }
           },
-          "rating": {
+          "limit": {
             "type": "integer",
             "format": "int32"
           },
-          "earnings": {
+          "offset": {
             "type": "integer",
             "format": "int32"
           }
