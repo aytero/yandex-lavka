@@ -3,27 +3,21 @@ package usecase
 import (
     "context"
     "yandex-team.ru/bstask/model"
-    "yandex-team.ru/bstask/repository"
+    "yandex-team.ru/bstask/order"
 )
 
-// todo interface
-
-//type Usecaser interface {
-//	GetOrder(ctx context.Context, userID int64) (*model.OrderDto, error)
-//}
-
 type OrderUsecase struct {
-    orderRepo *repository.OrderRepository
+    orderRepo order.Repository
 }
 
-func NewOrderUsecase(repo *repository.OrderRepository) *OrderUsecase {
+func NewOrderUsecase(repo order.Repository) *OrderUsecase {
     return &OrderUsecase{
         orderRepo: repo,
     }
 }
 
-func (uc *OrderUsecase) GetOrder(ctx context.Context, orderID int64) (*model.OrderDto, error) {
-    entry, err := uc.orderRepo.GetByID(ctx, orderID) // uc.BalanceRepo.GetById ; getUserByID
+func (uc *OrderUsecase) GetOrder(ctx context.Context, orderId int64) (*model.OrderDto, error) {
+    entry, err := uc.orderRepo.GetById(ctx, orderId) // uc.BalanceRepo.GetById ; getUserByID
     if err != nil {
         //return nil, fmt.Errorf("OrderRepository - CreateOrders: %w", err)
         return nil, err
@@ -31,7 +25,7 @@ func (uc *OrderUsecase) GetOrder(ctx context.Context, orderID int64) (*model.Ord
     return entry, nil
 }
 
-func (uc *OrderUsecase) GetOrders(ctx context.Context, limit, offset int32) ([]*model.OrderDto, error) {
+func (uc *OrderUsecase) GetOrders(ctx context.Context, limit, offset int32) ([]model.OrderDto, error) {
     entry, err := uc.orderRepo.GetOrders(ctx, limit, offset)
     if err != nil {
         // todo logging
@@ -40,7 +34,7 @@ func (uc *OrderUsecase) GetOrders(ctx context.Context, limit, offset int32) ([]*
     return entry, nil
 }
 
-func (uc *OrderUsecase) CreateOrder(ctx context.Context, orders *model.CreateOrderRequest) ([]*model.OrderDto, error) {
+func (uc *OrderUsecase) CreateOrder(ctx context.Context, orders *model.CreateOrderRequest) ([]model.OrderDto, error) {
     entry, err := uc.orderRepo.CreateOrders(ctx, orders)
     if err != nil {
         return nil, err
