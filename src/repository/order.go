@@ -11,15 +11,11 @@ import (
     "yandex-team.ru/bstask/model"
 )
 
-// todo order repository
-// todo deal with pointers
-// one global repo for two sub repos?
-
 const (
     queryGetOrderById         = `SELECT order_id, weight, regions, delivery_hours, cost, completed_time FROM orders WHERE order_id = $1`
     queryGetAllOrders         = `SELECT order_id, weight, regions, delivery_hours, cost, completed_time FROM orders LIMIT $1 OFFSET $2`
     queryCreateOrder          = `INSERT INTO orders (weight, regions, delivery_hours, cost) VALUES ($1, $2, $3, $4) RETURNING order_id`
-    queryGetByIdWithCourierId = `SELECT cour_id, order_id, weight, delivery_hours, cost, completed_time FROM orders WHERE order_id = $1`
+    queryGetByIdWithCourierId = `SELECT cour_id, order_id, weight, regions, delivery_hours, cost, completed_time FROM orders WHERE order_id = $1`
     queryUpdateOrder          = `UPDATE orders SET completed_time = $1 WHERE cour_id = $2 AND order_id = $3`
 )
 
@@ -33,10 +29,9 @@ func NewOrderRepository(dbConn *database.Database) *OrderRepository {
     }
 }
 
-func (r *OrderRepository) GetById(ctx context.Context, id int64) (*model.OrderDto, error) {
-    var order model.OrderDto
+func (r *OrderRepository) GetById(ctx context.Context, id int64) (*model.Order, error) {
+    var order model.Order
 
-    //err := r.db.Conn.GetContext(ctx, &order, query, id)
     err := r.db.Conn.QueryRowContext(ctx, queryGetOrderById, id).Scan(&order.OrderId, &order.Weight, &order.Regions,
         pq.Array(&order.DeliveryHours), &order.Cost, &order.CompletedTime)
     if err != nil {
@@ -50,8 +45,8 @@ func (r *OrderRepository) GetById(ctx context.Context, id int64) (*model.OrderDt
     return &order, nil
 }
 
-func (r *OrderRepository) GetOrders(ctx context.Context, limit, offset int32) ([]model.OrderDto, error) {
-    orders := make([]model.OrderDto, 0, limit)
+func (r *OrderRepository) GetOrders(ctx context.Context, limit, offset int32) ([]*model.Order, error) {
+    orders := make([]*model.Order, 0, limit)
 
     rows, err := r.db.Conn.QueryContext(ctx, queryGetAllOrders, limit, offset)
     if err != nil {
@@ -60,33 +55,19 @@ func (r *OrderRepository) GetOrders(ctx context.Context, limit, offset int32) ([
     defer rows.Close()
 
     for rows.Next() {
-        temp := model.OrderDto{}
+        temp := model.Order{}
         err := rows.Scan(&temp.OrderId, &temp.Weight, &temp.Regions, pq.Array(&temp.DeliveryHours), &temp.Cost, &temp.CompletedTime)
         if err != nil {
             return nil, fmt.Errorf("OrderRepository - GetOrders: %w", err)
         }
-        orders = append(orders, temp)
+        orders = append(orders, &temp)
     }
-
-    //err := rows.Scan(&temp.CourierId, &temp.CourierType, pq.Array(&temp.Regions), pq.Array(&temp.WorkingHours))
-    /*
-       if err := r.db.Conn.SelectContext(ctx, &orders, queryGetAllOrders, limit, offset); err != nil {
-           if errors.Is(err, sql.ErrNoRows) {
-               return orders, nil
-           } else {
-               return nil, fmt.Errorf("OrderRepository - GetOrders: %w", err)
-           }
-       }
-    */
     return orders, nil
 }
 
-// todo create all at once or one by one; and if tx rollbacks?
+func (r *OrderRepository) CreateOrders(ctx context.Context, orders []*model.CreateOrder) ([]*model.Order, error) {
 
-func (r *OrderRepository) CreateOrders(ctx context.Context, ords *model.CreateOrderRequest) ([]model.OrderDto, error) {
-
-    resOrd := make([]model.OrderDto, 0, len(ords.Orders))
-    log.Debug(ords.Orders, "request orders")
+    resOrd := make([]*model.Order, 0, len(orders))
 
     tx, err := r.db.Conn.BeginTxx(ctx, &sql.TxOptions{}) // nil
     if err != nil {
@@ -94,36 +75,29 @@ func (r *OrderRepository) CreateOrders(ctx context.Context, ords *model.CreateOr
     }
     defer tx.Rollback()
 
-    for _, o := range ords.Orders {
+    for _, o := range orders {
         var orderId int64
 
         err := tx.QueryRowContext(ctx, queryCreateOrder, o.Weight, o.Regions, pq.Array(&o.DeliveryHours), o.Cost).Scan(&orderId)
         if err != nil {
             return nil, fmt.Errorf("OrderRepository - CreateOrders: %w", err)
         }
-
-        //res, err := tx.NamedExecContext(ctx, q, o)
-        //if err != nil {
-        //    return nil, fmt.Errorf("OrderRepository - AddOrder: %w", err)
-        //}
-        //id, _ := res.LastInsertId()
-        temp := model.OrderDto{
+        temp := model.Order{
             OrderId:       orderId,
             Weight:        o.Weight,
             Regions:       o.Regions,
             DeliveryHours: o.DeliveryHours,
             Cost:          o.Cost,
         }
-        resOrd = append(resOrd, temp)
+        resOrd = append(resOrd, &temp)
     }
     if err = tx.Commit(); err != nil {
         return nil, fmt.Errorf("OrderRepository - CreateOrders: %w", err)
     }
-    log.Infof("orderRepo - Create - result %v", resOrd)
     return resOrd, nil
 }
 
-func (r *OrderRepository) UpdateOrders(ctx context.Context, ords []model.CompleteOrder) ([]model.OrderDto, error) {
+func (r *OrderRepository) UpdateOrders(ctx context.Context, ords []*model.CompleteOrder) ([]*model.Order, error) {
 
     tx, err := r.db.Conn.BeginTxx(ctx, &sql.TxOptions{}) // nil
     if err != nil {
@@ -131,14 +105,20 @@ func (r *OrderRepository) UpdateOrders(ctx context.Context, ords []model.Complet
     }
     defer tx.Rollback()
 
-    resOrders := make([]model.OrderDto, 0, len(ords))
-    var order model.OrderDto
+    resOrders := make([]*model.Order, 0, len(ords))
+    var order model.Order
     var id int64
     for _, o := range ords {
+
         err = tx.QueryRowContext(ctx, queryGetByIdWithCourierId, o.OrderId).
-            Scan(&id, &order.OrderId, &order.Weight, &order.Regions, &order.DeliveryHours, &order.Cost, &order.CompletedTime)
+            Scan(&id, &order.OrderId, &order.Weight, &order.Regions, pq.Array(&order.DeliveryHours), &order.Cost, &order.CompletedTime)
         if err != nil {
-            return nil, err
+            err = tx.QueryRowContext(ctx, queryGetOrderById, o.OrderId).
+                Scan(&order.OrderId, &order.Weight, &order.Regions, pq.Array(&order.DeliveryHours), &order.Cost, &order.CompletedTime)
+            id = o.CourierId
+            if err != nil {
+                return nil, fmt.Errorf("OrderRepository - Update: %w", err)
+            }
         }
         if id == 0 || id != o.CourierId {
             return nil, errors.New("invalid courier id")
@@ -147,15 +127,15 @@ func (r *OrderRepository) UpdateOrders(ctx context.Context, ords []model.Complet
         if order.CompletedTime == nil {
             temp := o.CompleteTime
             order.CompletedTime = &temp
+            log.Infof("update complete time")
             if _, err = tx.ExecContext(ctx, queryUpdateOrder, o.CompleteTime, o.CourierId, o.OrderId); err != nil {
-                return nil, fmt.Errorf("OrderRepository - UpdateOrders: %w", err)
+                return nil, fmt.Errorf("OrderRepository - Update: %w", err)
             }
         }
-        resOrders = append(resOrders, order)
+        resOrders = append(resOrders, &order)
     }
     if err = tx.Commit(); err != nil {
         return nil, fmt.Errorf("OrderRepository - Upadate: %w", err)
     }
-    log.Infof("orderRepo - Update - result %v", resOrders)
     return resOrders, nil
 }

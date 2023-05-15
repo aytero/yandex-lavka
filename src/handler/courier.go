@@ -7,11 +7,8 @@ import (
     "strconv"
     "time"
     "yandex-team.ru/bstask/courier"
-    "yandex-team.ru/bstask/model"
-    "yandex-team.ru/bstask/server"
+    "yandex-team.ru/bstask/handler/dto"
 )
-
-// todo middleware & validation
 
 type CourierHandler struct {
     uc courier.Usecase
@@ -35,7 +32,6 @@ func (h *CourierHandler) SetupRoutes(e *echo.Echo) {
 // GetCouriers -
 func (h *CourierHandler) GetCouriers(ctx echo.Context) error {
 
-    // todo check param == ""
     offset, err := strconv.ParseInt(ctx.QueryParam("offset"), 10, 32)
     if err != nil {
         offset = 0
@@ -47,25 +43,30 @@ func (h *CourierHandler) GetCouriers(ctx echo.Context) error {
 
     resp, err := h.uc.GetCouriers(ctx.Request().Context(), int32(limit), int32(offset))
     if err != nil {
-        return ctx.JSON(http.StatusBadRequest, server.BadRequestResponse{})
+        log.Infof("CourierHandler - GetCouriers: %w", err)
+        return ctx.JSON(http.StatusBadRequest, dto.BadRequestResponse{})
     }
     return ctx.JSON(http.StatusOK, resp)
 }
 
 // CreateCourier -
 func (h *CourierHandler) CreateCourier(ctx echo.Context) error {
-    req := model.CreateCourierRequest{}
+    req := dto.CreateCourierRequest{}
     err := ctx.Bind(&req)
     if err != nil {
-        log.Errorf("CourierHandler - CreateCouriers: %w", err)
-        return ctx.JSON(http.StatusBadRequest, server.BadRequestResponse{})
+        log.Infof("CourierHandler - CreateCouriers: %w", err)
+        return ctx.JSON(http.StatusBadRequest, dto.BadRequestResponse{})
+    }
+    if err := req.Validate(); err != nil {
+        log.Infof("CourierHandler - CreateCouriers: %w", err)
+        return ctx.JSON(http.StatusBadRequest, dto.BadRequestResponse{})
     }
     res, err := h.uc.CreateCourier(ctx.Request().Context(), &req)
     if err != nil {
-        log.Errorf("CourierHandler - CreateCouriers: %w", err)
-        return ctx.JSON(http.StatusBadRequest, server.BadRequestResponse{})
+        log.Infof("CourierHandler - CreateCouriers: %w", err)
+        return ctx.JSON(http.StatusBadRequest, dto.BadRequestResponse{})
     }
-    log.Infof("CourierHandler - CreateCouriers: OK")
+    log.Info("CourierHandler - CreateCouriers: OK")
     return ctx.JSON(http.StatusOK, res)
 }
 
@@ -74,22 +75,21 @@ func (h *CourierHandler) GetCourier(ctx echo.Context) error {
     // parse and validate
     courierId, err := strconv.ParseInt(ctx.Param("courier_id"), 10, 64)
     if err != nil {
-        //log.Println(http.StatusBadRequest)
-        log.Errorf("error - %s\n", err)
-        return ctx.JSON(http.StatusBadRequest, server.BadRequestResponse{})
+        log.Infof("error - %s\n", err)
+        return ctx.JSON(http.StatusBadRequest, dto.BadRequestResponse{})
     }
 
     // todo context
     entry, err := h.uc.GetCourier(ctx.Request().Context(), courierId)
     if err != nil {
-        log.Errorf("CourierHandler - GetCourier: %w", err)
-        return ctx.JSON(http.StatusBadRequest, server.BadRequestResponse{})
+        log.Infof("CourierHandler - GetCourier: %w", err)
+        return ctx.JSON(http.StatusBadRequest, dto.BadRequestResponse{})
     }
     if entry == nil {
-        log.Error("CourierHandler - GetCourier: 404NotFound")
-        return ctx.JSON(http.StatusNotFound, server.NotFoundResponse{})
+        log.Infof("CourierHandler - GetCourier: 404NotFound")
+        return ctx.JSON(http.StatusNotFound, dto.NotFoundResponse{})
     }
-    log.Infof("CourierHandler - GetCourier: OK")
+    log.Info("CourierHandler - GetCourier: OK")
     return ctx.JSON(http.StatusOK, entry)
 }
 
@@ -97,17 +97,22 @@ func (h *CourierHandler) GetCourier(ctx echo.Context) error {
 func (h *CourierHandler) GetCourierMetaInfo(ctx echo.Context) error {
     courierId, err := strconv.ParseInt(ctx.Param("courier_id"), 10, 64)
     if err != nil {
-        log.Errorf("CourierHandler - GetCourierMetaInfo: %w", err)
+        log.Infof("CourierHandler - GetCourierMetaInfo: %w", err)
         return nil
     }
     startDate, endDate, err := h.parseDates(ctx)
     if err != nil {
-        log.Errorf("CourierHandler - GetCourierMetaInfo: %w", err)
+        log.Infof("CourierHandler - GetCourierMetaInfo: %w", err)
         return nil
     }
 
     res, err := h.uc.GetCourierMetaInfo(ctx.Request().Context(), courierId, startDate, endDate)
     return ctx.JSON(http.StatusOK, res)
+}
+
+//CouriersAssignments - Список распределенных заказов
+func (h *CourierHandler) CouriersAssignments(ctx echo.Context) error {
+    return ctx.JSON(http.StatusOK, dto.OrderAssignResponse{})
 }
 
 func (h CourierHandler) parseDates(ctx echo.Context) (time.Time, time.Time, error) {
@@ -123,11 +128,3 @@ func (h CourierHandler) parseDates(ctx echo.Context) (time.Time, time.Time, erro
     }
     return startDate, endDate, nil
 }
-
-// todo task 4
-// CouriersAssignments - Список распределенных заказов
-//func (c *Container) CouriersAssignments(ctx echo.Context) error {
-//	return ctx.JSON(http.StatusOK, models.HelloWorld{
-//		Message: "Hello World",
-//	})
-//}

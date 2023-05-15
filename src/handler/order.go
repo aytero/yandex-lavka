@@ -5,16 +5,13 @@ import (
     "github.com/labstack/gommon/log"
     "net/http"
     "strconv"
-    "yandex-team.ru/bstask/model"
+    "yandex-team.ru/bstask/handler/dto"
     "yandex-team.ru/bstask/order"
-    "yandex-team.ru/bstask/server"
 )
 
 type OrderHandler struct {
     uc order.Usecase
 }
-
-// todo middleware & validation
 
 func NewOrderHandler(ouc order.Usecase) *OrderHandler {
     h := &OrderHandler{
@@ -33,24 +30,20 @@ func (h *OrderHandler) SetupRoutes(e *echo.Echo) {
 
 // GetOrder -
 func (h *OrderHandler) GetOrder(ctx echo.Context) error {
-    // parse and validate
     orderId, err := strconv.ParseInt(ctx.Param("order_id"), 10, 64)
     if err != nil {
-        //log.Println(http.StatusBadRequest)
-        log.Errorf("error - %v\n", err)
-        return ctx.JSON(http.StatusBadRequest, server.BadRequestResponse{})
+        log.Infof("error - %v\n", err)
+        return ctx.JSON(http.StatusBadRequest, dto.BadRequestResponse{})
     }
 
-    // todo context
     entry, err := h.uc.GetOrder(ctx.Request().Context(), orderId)
     if err != nil {
-
         log.Infof("OrderHandler - GetOrder: %w", err)
-        return ctx.JSON(http.StatusBadRequest, server.BadRequestResponse{})
+        return ctx.JSON(http.StatusBadRequest, dto.BadRequestResponse{})
     }
     if entry == nil {
         log.Info("OrderHandler - GetOrder: 404NotFound")
-        return ctx.JSON(http.StatusNotFound, server.NotFoundResponse{})
+        return ctx.JSON(http.StatusNotFound, dto.NotFoundResponse{})
     }
     log.Info("OrderHandler - GetOrder: OK")
     return ctx.JSON(http.StatusOK, entry)
@@ -59,7 +52,6 @@ func (h *OrderHandler) GetOrder(ctx echo.Context) error {
 // GetOrders -
 func (h *OrderHandler) GetOrders(ctx echo.Context) error {
 
-    // todo check param == ""
     offset, err := strconv.ParseInt(ctx.QueryParam("offset"), 10, 32)
     if err != nil {
         offset = 0
@@ -71,45 +63,43 @@ func (h *OrderHandler) GetOrders(ctx echo.Context) error {
     orders, err := h.uc.GetOrders(ctx.Request().Context(), int32(limit), int32(offset))
     if err != nil {
         log.Infof("OrderHandler - GetOrders: BadRequest: %v", err)
-        return ctx.JSON(http.StatusBadRequest, server.BadRequestResponse{})
+        return ctx.JSON(http.StatusBadRequest, dto.BadRequestResponse{})
     }
     log.Info("OrderHandler - GetOrders: OK")
-    //return h.JSON(http.StatusOK, newOrdersResponse(h.uc.OrderRepo, userIDFromToken(h), orders, count))
     return ctx.JSON(http.StatusOK, orders)
 }
 
 // CreateOrder -
 func (h *OrderHandler) CreateOrder(ctx echo.Context) error {
-    req := model.CreateOrderRequest{}
+    req := dto.CreateOrderRequest{}
     err := ctx.Bind(&req)
     if err != nil {
-        log.Errorf("OrderHandler: %v", err)
-        return ctx.JSON(http.StatusBadRequest, server.BadRequestResponse{})
+        log.Infof("OrderHandler: %v", err)
+        return ctx.JSON(http.StatusBadRequest, dto.BadRequestResponse{})
     }
     res, err := h.uc.CreateOrder(ctx.Request().Context(), &req)
     if err != nil {
-        log.Errorf("OrderHandler - CreateOrders: %v", err)
-        //log.Println(fmt.Errorf("OrderHandler - CreateOrders: %w", err))
-        return ctx.JSON(http.StatusBadRequest, server.BadRequestResponse{})
+        log.Infof("OrderHandler - CreateOrders: %v", err)
+        return ctx.JSON(http.StatusBadRequest, dto.BadRequestResponse{})
     }
-    log.Info("OrderHandler - CreateOrders: OK")
     return ctx.JSON(http.StatusOK, res)
 }
 
 // CompleteOrder -
 func (h *OrderHandler) CompleteOrder(ctx echo.Context) error {
-    req := &model.CompleteOrderRequestDto{}
+    req := &dto.CompleteOrderRequestDto{}
     err := ctx.Bind(&req)
     if err != nil {
-        log.Errorf("OrderHandler - CompleteOrder: %w", err)
-        return ctx.JSON(http.StatusBadRequest, server.BadRequestResponse{})
+        log.Infof("OrderHandler - CompleteOrder: %w", err)
+        return ctx.JSON(http.StatusBadRequest, dto.BadRequestResponse{})
     }
 
     res, err := h.uc.CompleteOrders(ctx.Request().Context(), req)
     if err != nil {
-        log.Errorf("OrderHandler - CompleteOrder: %w", err)
-        return ctx.JSON(http.StatusBadRequest, server.BadRequestResponse{})
+        log.Infof("OrderHandler - CompleteOrder: %v", err)
+        return ctx.JSON(http.StatusBadRequest, dto.BadRequestResponse{})
     }
+    log.Info("OrderHandler - CompleteOrder: OK")
     return ctx.JSON(http.StatusOK, res)
 }
 
@@ -117,7 +107,7 @@ func (h *OrderHandler) CompleteOrder(ctx echo.Context) error {
 // OrdersAssign - Распределение заказов по курьерам
 //func (c *OrderHandler) OrdersAssign(ctx echo.Context) error {
 //    if err != nil {
-//        return ctx.JSON(http.StatusBadRequest, model.BadRequestResponse{})
+//        return ctx.JSON(http.StatusBadRequest, dto.BadRequestResponse{})
 //    }
-//    return ctx.JSON(http.StatusCreated, model.OrderAssignResponse{})
+//    return ctx.JSON(http.StatusCreated, dto.OrderAssignResponse{})
 //}

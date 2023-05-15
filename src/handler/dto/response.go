@@ -1,6 +1,4 @@
-package server
-
-// should be somewhere else but i dont know where yet
+package dto
 
 type NotFoundResponse struct {
 }

@@ -1,3 +1,3 @@
-DROP TABLE couriers;
+DROP TABLE if exists couriers;
 
-DROP TABLE orders;
+DROP TABLE if exists orders;

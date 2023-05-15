@@ -39,7 +39,8 @@ func New(url string) (*Database, error) {
     // todo
     url = fmt.Sprintf("host=%s port=%d user=%s "+
         "password=%s dbname=%s sslmode=disable",
-        host, port, user, password, dbname)
+        host, port, user, password, dbname) // sslmode
+    // try to connect if failed recover panic and try few other methods
     c, err := sqlx.Connect("pgx", url)
     if err != nil {
         return nil, err
@@ -49,13 +50,6 @@ func New(url string) (*Database, error) {
         maxConns: defaultMaxConns,
     }
 
-    //	for _, opt := range opts {
-    //		opt(db)
-    //	}
-    //db.Conn.SetMaxIdleConns(db.maxConns)
-    //db.Conn.SetMaxOpenConns(db.maxConns)
-
-    // todo migrations
     driver, err := postgres.WithInstance(c.DB, &postgres.Config{})
     if err != nil {
         return nil, fmt.Errorf("migration driver: %w", err)

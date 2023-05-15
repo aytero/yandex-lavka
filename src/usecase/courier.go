@@ -5,6 +5,7 @@ import (
     "fmt"
     "time"
     "yandex-team.ru/bstask/courier"
+    "yandex-team.ru/bstask/handler/dto"
     "yandex-team.ru/bstask/model"
 )
 
@@ -18,38 +19,49 @@ func NewCourierUsecase(repo courier.Repository) *CourierUsecase {
     }
 }
 
-func (uc *CourierUsecase) GetCourier(ctx context.Context, courierId int64) (*model.CourierDto, error) {
-    entry, err := uc.courierRepo.GetById(ctx, courierId) // uc.BalanceRepo.GetById ; getUserByID
+func (uc *CourierUsecase) GetCourier(ctx context.Context, courierId int64) (*dto.CourierDto, error) {
+    entry, err := uc.courierRepo.GetById(ctx, courierId)
     if err != nil {
-        //return nil, fmt.Errorf("CourierRepository - CreateCouriers: %w", err)
         return nil, err
     }
-    return entry, nil
+    if entry == nil {
+        return nil, nil
+    }
+    c := courierModelToDto(entry)
+    return &c, nil
 }
 
-func (uc *CourierUsecase) GetCouriers(ctx context.Context, limit, offset int32) (*model.GetCouriersResponse, error) {
+func (uc *CourierUsecase) GetCouriers(ctx context.Context, limit, offset int32) (*dto.GetCouriersResponse, error) {
     entry, err := uc.courierRepo.GetCouriers(ctx, limit, offset)
     if err != nil {
-        // todo logging
         return nil, err
     }
-    resp := model.GetCouriersResponse{
-        Couriers: entry,
+
+    return &dto.GetCouriersResponse{
+        Couriers: couriersSliceModelToDto(entry),
         Limit:    limit,
         Offset:   offset,
-    }
-    return &resp, nil
+    }, nil
 }
 
-func (uc *CourierUsecase) CreateCourier(ctx context.Context, couriers *model.CreateCourierRequest) ([]*model.CourierDto, error) {
-    entry, err := uc.courierRepo.CreateCouriers(ctx, couriers)
+func (uc *CourierUsecase) CreateCourier(ctx context.Context, couriers *dto.CreateCourierRequest) (*dto.CreateCouriersResponse, error) {
+
+    reqC := make([]*model.CreateCourier, 0, len(couriers.Couriers))
+    for _, c := range couriers.Couriers {
+        r := model.CreateCourier{CourierType: c.CourierType, Regions: c.Regions, WorkingHours: c.WorkingHours}
+        reqC = append(reqC, &r)
+    }
+    entry, err := uc.courierRepo.CreateCouriers(ctx, reqC)
     if err != nil {
         return nil, err
     }
-    return entry, nil
+
+    return &dto.CreateCouriersResponse{
+        Couriers: couriersSliceModelToDto(entry),
+    }, nil
 }
 
-func (uc *CourierUsecase) GetCourierMetaInfo(ctx context.Context, id int64, startDate, endDate time.Time) (*model.GetCourierMetaInfoResponse, error) {
+func (uc *CourierUsecase) GetCourierMetaInfo(ctx context.Context, id int64, startDate, endDate time.Time) (*dto.GetCourierMetaInfoResponse, error) {
     c, err := uc.courierRepo.GetById(ctx, id)
     if err != nil {
         return nil, fmt.Errorf("CourierUsecase - GetMetaInfo: %w", err)
@@ -59,7 +71,10 @@ func (uc *CourierUsecase) GetCourierMetaInfo(ctx context.Context, id int64, star
         return nil, fmt.Errorf("CourierUsecase - GetMetaInfo: %w", err)
     }
 
-    res := &model.GetCourierMetaInfoResponse{
+    if c == nil {
+        return &dto.GetCourierMetaInfoResponse{}, nil
+    }
+    res := &dto.GetCourierMetaInfoResponse{
         CourierId:    c.CourierId,
         CourierType:  c.CourierType,
         Regions:      c.Regions,
@@ -68,13 +83,10 @@ func (uc *CourierUsecase) GetCourierMetaInfo(ctx context.Context, id int64, star
     if len(earnings) == 0 {
         return res, nil
     }
-    //coeff := getCoefficient(res.CourierType)
-    res.Rating = calculateRating(startDate, endDate, ratingCoef[res.CourierType], int32(len(earnings)))
-    res.Earnings = calculateEarnings(earnings, salaryCoef[res.CourierType])
+    res.Rating = uc.calculateRating(startDate, endDate, ratingCoef[res.CourierType], int32(len(earnings)))
+    res.Earnings = uc.calculateEarnings(earnings, salaryCoef[res.CourierType])
     return res, nil
 }
-
-//type Base int
 
 var ratingCoef = map[string]int32{
     "FOOT": 3,
@@ -88,50 +100,35 @@ var salaryCoef = map[string]int32{
     "CAR":  4,
 }
 
-// todo enum
-//func getCoefficient(courierType string) int32 {
-//    switch courierType {
-//    case "FOOT":
-//        return 2
-//    case "BIKE":
-//        return 3
-//    case "CAR":
-//        return 4
-//    default:
-//        return 0
-//    }
-//}
-
-/*
-**Заработок рассчитывается по формуле:**
-Заработок рассчитывается как сумма оплаты за каждый завершенный развоз в период с `start_date` (включая) до
-`end_date` (исключая):
-`sum = ∑(cost * C)`
-`C`  — коэффициент, зависящий от типа курьера:
-* пеший — 2
-* велокурьер — 3
-* авто — 4
-Если курьер не завершил ни одного развоза, то рассчитывать и возвращать заработок не нужно.
-
-**Рейтинг рассчитывается по формуле:**
-Рейтинг рассчитывается следующим образом:
-((число всех выполненных заказов с `start_date` по `end_date`) / (Количество часов между `start_date` и `end_date`)) * C
-C - коэффициент, зависящий от типа курьера:
-* пеший = 3
-* велокурьер = 2
-* авто - 1
-Если курьер не завершил ни одного развоза, то рассчитывать и возвращать рейтинг не нужно.
-*/
-
-func calculateRating(startDate, endDate time.Time, coef int32, numOrders int32) int32 {
-    hoursWorked := int32(endDate.Sub(startDate).Hours())
-    return (numOrders / hoursWorked) * coef
+func (uc CourierUsecase) calculateRating(startDate, endDate time.Time, coef int32, numOrders int32) int32 {
+    hoursWorked := endDate.Sub(startDate).Hours()
+    return (numOrders / int32(hoursWorked)) * coef
 }
 
-func calculateEarnings(costs []int32, coef int32) int32 {
+func (uc CourierUsecase) calculateEarnings(costs []int32, coef int32) int32 {
     var earnings int32
     for _, c := range costs {
         earnings += c * coef
     }
     return earnings
+}
+
+func couriersSliceModelToDto(entry []*model.Courier) []dto.CourierDto {
+    resp := make([]dto.CourierDto, 0, len(entry))
+    for _, e := range entry {
+        resp = append(resp, courierModelToDto(e))
+    }
+    return resp
+}
+
+func courierModelToDto(m *model.Courier) dto.CourierDto {
+    if m == nil {
+        return dto.CourierDto{}
+    }
+    return dto.CourierDto{
+        CourierId:    m.CourierId,
+        CourierType:  m.CourierType,
+        Regions:      m.Regions,
+        WorkingHours: m.WorkingHours,
+    }
 }

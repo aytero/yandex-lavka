@@ -16,7 +16,7 @@ const (
     queryGetCourierById = `SELECT courier_id, courier_type, regions, working_hours FROM couriers WHERE courier_id = $1`
     queryGetAllCouriers = `SELECT courier_id, courier_type, regions, working_hours FROM couriers LIMIT $1 OFFSET $2`
     queryCreateCourier  = `INSERT INTO couriers (courier_type, regions, working_hours) VALUES ($1, $2, $3) RETURNING courier_id`
-    queryGetEarnings    = `SELECT cost FROM orders WHERE complete_time >= $1 AND complete_time < $2 AND cour_id = $3`
+    queryGetEarnings    = `SELECT cost FROM orders WHERE completed_time >= $1 AND completed_time < $2 AND cour_id = $3`
 )
 
 type CourierRepository struct {
@@ -29,8 +29,8 @@ func NewCourierRepository(dbConn *database.Database) *CourierRepository {
     }
 }
 
-func (r *CourierRepository) GetById(ctx context.Context, id int64) (*model.CourierDto, error) {
-    var courier model.CourierDto
+func (r *CourierRepository) GetById(ctx context.Context, id int64) (*model.Courier, error) {
+    var courier model.Courier
 
     //err := r.db.Conn.GetContext(ctx, &courier, query, id)
     err := r.db.Conn.QueryRowContext(ctx, queryGetCourierById, id).
@@ -46,8 +46,8 @@ func (r *CourierRepository) GetById(ctx context.Context, id int64) (*model.Couri
     return &courier, nil
 }
 
-func (r *CourierRepository) GetCouriers(ctx context.Context, limit, offset int32) ([]model.CourierDto, error) {
-    couriers := make([]model.CourierDto, 0, limit)
+func (r *CourierRepository) GetCouriers(ctx context.Context, limit, offset int32) ([]*model.Courier, error) {
+    couriers := make([]*model.Courier, 0, limit)
 
     rows, err := r.db.Conn.QueryContext(ctx, queryGetAllCouriers, limit, offset)
     if err != nil {
@@ -56,12 +56,12 @@ func (r *CourierRepository) GetCouriers(ctx context.Context, limit, offset int32
     defer rows.Close()
 
     for rows.Next() {
-        temp := model.CourierDto{}
+        temp := model.Courier{}
         err := rows.Scan(&temp.CourierId, &temp.CourierType, pq.Array(&temp.Regions), pq.Array(&temp.WorkingHours))
         if err != nil {
             return nil, fmt.Errorf("CourierRepository - GetCouriers: %w", err)
         }
-        couriers = append(couriers, temp)
+        couriers = append(couriers, &temp)
     }
 
     return couriers, nil
@@ -69,8 +69,8 @@ func (r *CourierRepository) GetCouriers(ctx context.Context, limit, offset int32
 
 // todo create all at once or one by one; and if tx rollbacks?
 
-func (r *CourierRepository) CreateCouriers(ctx context.Context, cours *model.CreateCourierRequest) ([]*model.CourierDto, error) {
-    resCours := make([]*model.CourierDto, 0, len(cours.Couriers))
+func (r *CourierRepository) CreateCouriers(ctx context.Context, couriers []*model.CreateCourier) ([]*model.Courier, error) {
+    resCours := make([]*model.Courier, 0, len(couriers))
 
     tx, err := r.db.Conn.BeginTxx(ctx, &sql.TxOptions{}) // nil
     if err != nil {
@@ -79,12 +79,12 @@ func (r *CourierRepository) CreateCouriers(ctx context.Context, cours *model.Cre
     defer tx.Rollback()
 
     var courierId int64
-    for _, c := range cours.Couriers {
+    for _, c := range couriers {
         err := tx.QueryRowContext(ctx, queryCreateCourier, c.CourierType, pq.Array(c.Regions), pq.Array(c.WorkingHours)).Scan(&courierId)
         if err != nil {
             return nil, fmt.Errorf("CourierRepository - CreateCouriers: %w", err)
         }
-        temp := model.CourierDto{
+        temp := model.Courier{
             CourierId:    courierId,
             CourierType:  c.CourierType,
             Regions:      c.Regions,
@@ -100,7 +100,7 @@ func (r *CourierRepository) CreateCouriers(ctx context.Context, cours *model.Cre
 }
 
 func (r *CourierRepository) GetEarnings(ctx context.Context, id int64, startDate, endDate time.Time) ([]int32, error) {
-    earnings := make([]int32, 0)
+    earnings := make([]int32, 0, 0)
     err := r.db.Conn.SelectContext(ctx, &earnings, queryGetEarnings, startDate, endDate, id)
     if err != nil {
         return nil, fmt.Errorf("CourierRepository - GetEarnings: %w", err)
