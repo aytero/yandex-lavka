@@ -1,0 +1,35 @@
+###
+GET localhost:8080/orders?limit=100
+
+###
+GET localhost:8080/couriers?limit=100
+
+###
+POST http://localhost:8080/couriers
+Content-Type: application/json
+
+{    "couriers": [
+      {
+        "courier_type": "BIKE",
+        "regions": [
+          2,3
+        ],
+        "working_hours": [
+          "05:00-10:00",
+          "11:00-15:00"
+        ]
+      },
+      {
+        "courier_type": "FOOT",
+        "regions": [
+          1        ],
+        "working_hours": [
+          "09:00-18:00"
+        ]
+      },
+      {        "courier_type": "CAR",
+        "regions": [          3,4
+        ],        "working_hours": [
+          "00:00-10:00"        ]
+      }    ]
+  }
