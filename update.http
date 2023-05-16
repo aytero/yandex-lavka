@@ -1,4 +1,4 @@
-POST http://localhost:8080/orders
+POST http://localhost:8080/orders?limit=100
 Content-Type: application/json
 
 {
@@ -22,7 +22,7 @@ Content-Type: application/json
 //“09:00-11:00”, “12:00-23:00”, “00:00-23:59”.
 
 ###
-GET http://localhost:8080/orders/1
+GET http://localhost:8080/orders?limit=100
 #Accept: application/json
 #
 ####

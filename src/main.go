@@ -18,6 +18,7 @@ import (
 )
 
 func main() {
+    time.Sleep(5 * time.Second)
     zerolog.SetGlobalLevel(zerolog.ErrorLevel)
 
     cfg, err := config.NewConfig("config/.config.env")
