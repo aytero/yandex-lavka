@@ -28,7 +28,6 @@ type (
         Passwd  string
         MaxConn int
         Sslmode string
-        Dbname  string
     }
 
     Log struct {
@@ -43,10 +42,9 @@ func NewConfig(config string) (*Config, error) {
         cfg.PG.Host = "db"
         cfg.PG.Port = "5432"
         cfg.PG.User = "postgres"
-        cfg.PG.Name = "postgres"
+        cfg.PG.Name = "db"
         cfg.PG.Passwd = "password"
         cfg.PG.Sslmode = "disable"
-        cfg.PG.Dbname = "ydx_db"
         cfg.PG.URL = getDbUrl(cfg)
         cfg.PG.MaxConn = 10
         cfg.Log.Level = "ERROR"
@@ -66,7 +64,6 @@ func NewConfig(config string) (*Config, error) {
     cfg.PG.Name = os.Getenv("POSTGRES_NAME")
     cfg.PG.Passwd = os.Getenv("POSTGRES_PASSWORD")
     cfg.PG.Sslmode = os.Getenv("SSLMODE")
-    cfg.PG.Dbname = os.Getenv("DB_NAME")
     cfg.PG.URL = getDbUrl(cfg)
     cfg.PG.MaxConn, _ = strconv.Atoi(os.Getenv("DB_MAXCONNS"))
     cfg.Log.Level = os.Getenv("LOG_LEVEL")
@@ -83,6 +80,6 @@ func getDbUrl(cfg *Config) string {
     }
     url := fmt.Sprintf("host=%s port=%d user=%s "+
         "password=%s dbname=%s sslmode=%s",
-        cfg.PG.Host, port, cfg.PG.User, cfg.PG.Passwd, cfg.PG.Dbname, cfg.PG.Sslmode)
+        cfg.PG.Host, port, cfg.PG.User, cfg.PG.Passwd, cfg.PG.Name, cfg.PG.Sslmode)
     return url
 }
