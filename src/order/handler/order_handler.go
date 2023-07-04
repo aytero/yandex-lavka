@@ -45,12 +45,12 @@ func (h *OrderHandler) GetOrder(ctx echo.Context) error {
 		return ctx.JSON(http.StatusNotFound, dtoOrder.NotFoundResponse{})
 	}
 	log.Info("OrderHandler - GetOrder: OK")
-	return ctx.JSON(http.StatusOK, entry)
+	orderResponse := dtoOrder.ParseFromEntity(entry)
+	return ctx.JSON(http.StatusOK, orderResponse)
 }
 
 // GetOrders -
 func (h *OrderHandler) GetOrders(ctx echo.Context) error {
-
 	offset, err := strconv.ParseInt(ctx.QueryParam("offset"), 10, 32)
 	if err != nil {
 		offset = 0
@@ -64,8 +64,9 @@ func (h *OrderHandler) GetOrders(ctx echo.Context) error {
 		log.Infof("OrderHandler - GetOrders: BadRequest: %v", err)
 		return ctx.JSON(http.StatusBadRequest, dtoOrder.BadRequestResponse{})
 	}
+	ordersResponse := dtoOrder.ParseFromEntitySlice(orders)
 	log.Info("OrderHandler - GetOrders: OK")
-	return ctx.JSON(http.StatusOK, orders)
+	return ctx.JSON(http.StatusOK, ordersResponse)
 }
 
 // CreateOrder -
@@ -76,12 +77,13 @@ func (h *OrderHandler) CreateOrder(ctx echo.Context) error {
 		log.Infof("OrderHandler: %v", err)
 		return ctx.JSON(http.StatusBadRequest, dtoOrder.BadRequestResponse{})
 	}
-	res, err := h.uc.CreateOrder(ctx.Request().Context(), &req)
+	orders, err := h.uc.CreateOrder(ctx.Request().Context(), req.MapToModel())
 	if err != nil {
 		log.Infof("OrderHandler - CreateOrders: %v", err)
 		return ctx.JSON(http.StatusBadRequest, dtoOrder.BadRequestResponse{})
 	}
-	return ctx.JSON(http.StatusOK, res)
+	createResponse := dtoOrder.ParseFromEntitySlice(orders)
+	return ctx.JSON(http.StatusOK, createResponse)
 }
 
 // CompleteOrder -
@@ -93,13 +95,14 @@ func (h *OrderHandler) CompleteOrder(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, dtoOrder.BadRequestResponse{})
 	}
 
-	res, err := h.uc.CompleteOrders(ctx.Request().Context(), req)
+	orders, err := h.uc.CompleteOrders(ctx.Request().Context(), req.MapToModel())
 	if err != nil {
 		log.Infof("OrderHandler - CompleteOrder: %v", err)
 		return ctx.JSON(http.StatusBadRequest, dtoOrder.BadRequestResponse{})
 	}
+	completeResponse := dtoOrder.ParseFromEntitySlice(orders)
 	log.Info("OrderHandler - CompleteOrder: OK")
-	return ctx.JSON(http.StatusOK, res)
+	return ctx.JSON(http.StatusOK, completeResponse)
 }
 
 // todo task 4

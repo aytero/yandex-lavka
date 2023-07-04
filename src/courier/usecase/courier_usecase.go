@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"time"
-	"yandex-team.ru/bstask/courier/handler/dto"
 	"yandex-team.ru/bstask/model"
 )
 
@@ -18,7 +17,7 @@ func NewCourierUsecase(repo Repository) *CourierUsecase {
 	}
 }
 
-func (uc *CourierUsecase) GetCourier(ctx context.Context, courierId int64) (*dto.CourierDto, error) {
+func (uc *CourierUsecase) GetCourier(ctx context.Context, courierId int64) (*model.Courier, error) {
 	entry, err := uc.courierRepo.GetById(ctx, courierId)
 	if err != nil {
 		return nil, err
@@ -26,41 +25,27 @@ func (uc *CourierUsecase) GetCourier(ctx context.Context, courierId int64) (*dto
 	if entry == nil {
 		return nil, nil
 	}
-	c := courierModelToDto(entry)
-	return &c, nil
+	return entry, nil
 }
 
-func (uc *CourierUsecase) GetCouriers(ctx context.Context, limit, offset int32) (*dto.GetCouriersResponse, error) {
+func (uc *CourierUsecase) GetCouriers(ctx context.Context, limit, offset int32) ([]*model.Courier, error) {
 	entry, err := uc.courierRepo.GetCouriers(ctx, limit, offset)
 	if err != nil {
 		return nil, err
 	}
-
-	return &dto.GetCouriersResponse{
-		Couriers: couriersSliceModelToDto(entry),
-		Limit:    limit,
-		Offset:   offset,
-	}, nil
+	return entry, nil
 }
 
-func (uc *CourierUsecase) CreateCourier(ctx context.Context, couriers *dto.CreateCourierRequest) (*dto.CreateCouriersResponse, error) {
+func (uc *CourierUsecase) CreateCourier(ctx context.Context, couriers []*model.CreateCourier) ([]*model.Courier, error) {
 
-	reqC := make([]*model.CreateCourier, 0, len(couriers.Couriers))
-	for _, c := range couriers.Couriers {
-		r := model.CreateCourier{CourierType: c.CourierType, Regions: c.Regions, WorkingHours: c.WorkingHours}
-		reqC = append(reqC, &r)
-	}
-	entry, err := uc.courierRepo.CreateCouriers(ctx, reqC)
+	entry, err := uc.courierRepo.CreateCouriers(ctx, couriers)
 	if err != nil {
 		return nil, err
 	}
-
-	return &dto.CreateCouriersResponse{
-		Couriers: couriersSliceModelToDto(entry),
-	}, nil
+	return entry, nil
 }
 
-func (uc *CourierUsecase) GetCourierMetaInfo(ctx context.Context, id int64, startDate, endDate time.Time) (*dto.GetCourierMetaInfoResponse, error) {
+func (uc *CourierUsecase) GetCourierMetaInfo(ctx context.Context, id int64, startDate, endDate time.Time) (*model.CourierMeta, error) {
 	c, err := uc.courierRepo.GetById(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("CourierUsecase - GetMetaInfo: %w", err)
@@ -71,9 +56,9 @@ func (uc *CourierUsecase) GetCourierMetaInfo(ctx context.Context, id int64, star
 	}
 
 	if c == nil {
-		return &dto.GetCourierMetaInfoResponse{}, nil
+		return &model.CourierMeta{}, nil
 	}
-	res := &dto.GetCourierMetaInfoResponse{
+	res := &model.CourierMeta{
 		CourierId:    c.CourierId,
 		CourierType:  c.CourierType,
 		Regions:      c.Regions,
@@ -110,24 +95,4 @@ func (uc CourierUsecase) calculateEarnings(costs []int32, coef int32) int32 {
 		earnings += c * coef
 	}
 	return earnings
-}
-
-func couriersSliceModelToDto(entry []*model.Courier) []dto.CourierDto {
-	resp := make([]dto.CourierDto, 0, len(entry))
-	for _, e := range entry {
-		resp = append(resp, courierModelToDto(e))
-	}
-	return resp
-}
-
-func courierModelToDto(m *model.Courier) dto.CourierDto {
-	if m == nil {
-		return dto.CourierDto{}
-	}
-	return dto.CourierDto{
-		CourierId:    m.CourierId,
-		CourierType:  m.CourierType,
-		Regions:      m.Regions,
-		WorkingHours: m.WorkingHours,
-	}
 }

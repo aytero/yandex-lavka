@@ -4,9 +4,9 @@ cover:
 	rm coverage.out
 
 gen:
-	mockgen -source=src/order/order.go \
-            -destination=src/order/mocks/mock_interface.go && \
-    mockgen -source=src/courier/courier.go \
-                    -destination=src/courier/mocks/mock_interface.go
+	/Users/ayto/go/bin/mockgen -source=src/order/usecase/interface.go \
+            -destination=src/order/repository/mocks/mock_interface.go && \
+    /Users/ayto/go/bin/mockgen -source=src/courier/usecase/interface.go \
+                    -destination=src/courier/repository/mocks/mock_interface.go
 
 .PHONY: gen cover
