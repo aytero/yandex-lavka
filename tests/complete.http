@@ -1,0 +1,16 @@
+
+###
+POST http://localhost:8080/orders/complete
+Content-Type: application/json
+
+{
+  "complete_info": [
+    {
+      "courier_id": 1,
+      "order_id": 1,
+      "complete_time": "2024-01-06T18:31:20.477Z"
+    }
+  ]
+}
+
+###

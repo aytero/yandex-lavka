@@ -20,12 +20,50 @@ func NewOrderHandler(ouc Usecase) *OrderHandler {
 }
 
 func (h *OrderHandler) SetupRoutes(e *echo.Echo) {
+	//e.GET("/orders", h.GetOrders, middleware.RateLimiterWithConfig(h.getNewRateLimiterConfig()))
 	e.GET("/orders", h.GetOrders)
 	e.POST("/orders", h.CreateOrder)
 	e.POST("/orders/complete", h.CompleteOrder)
 	//e.POST("/orders/assign", h.OrdersAssign)
 	e.GET("/orders/:order_id", h.GetOrder)
 }
+
+/*
+func (h *OrderHandler) getNewRateLimiterConfig() middleware.RateLimiterConfig {
+	var identifierExtractor func(ctx echo.Context) (string, error)
+	switch h.config.Server.RateLimiterType {
+	case "requests":
+		identifierExtractor = func(ctx echo.Context) (string, error) {
+			return "", nil
+		}
+	case "ip":
+		identifierExtractor = func(ctx echo.Context) (string, error) {
+			id := ctx.RealIP()
+			return id, nil
+		}
+	}
+
+	rateLimiterConfig := middleware.RateLimiterConfig{
+		Skipper: middleware.DefaultSkipper,
+		Store: middleware.NewRateLimiterMemoryStoreWithConfig(
+			middleware.RateLimiterMemoryStoreConfig{
+				Rate:      rate.Limit(h.config.Server.RateLimiterMemoryStoreConfig.Rate),
+				Burst:     h.config.Server.RateLimiterMemoryStoreConfig.Burst,
+				ExpiresIn: time.Duration(h.config.Server.RateLimiterMemoryStoreConfig.ExpiresIn) * time.Second},
+		),
+		IdentifierExtractor: identifierExtractor,
+		ErrorHandler: func(context echo.Context, err error) error {
+			return context.JSON(http.StatusForbidden, struct {
+			}{})
+		},
+		DenyHandler: func(context echo.Context, identifier string, err error) error {
+			return context.JSON(http.StatusTooManyRequests, struct {
+			}{})
+		},
+	}
+	return rateLimiterConfig
+}
+*/
 
 // GetOrder -
 func (h *OrderHandler) GetOrder(ctx echo.Context) error {
@@ -95,6 +133,7 @@ func (h *OrderHandler) CompleteOrder(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, dtoOrder.BadRequestResponse{})
 	}
 
+	// todo validate / date not in future
 	orders, err := h.uc.CompleteOrders(ctx.Request().Context(), req.MapToModel())
 	if err != nil {
 		log.Infof("OrderHandler - CompleteOrder: %v", err)
